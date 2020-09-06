@@ -144,7 +144,11 @@ GODDARD_SRC_DIRS := src/goddard src/goddard/dynlists
 
 
 MIPSISET := -mips2 -32
-OPT_FLAGS := -O2
+ifeq ($(VERSION),eu)
+  OPT_FLAGS := -O2
+else
+  OPT_FLAGS := -g
+endif
 
 # File dependencies and variables for specific files
 include Makefile.split
