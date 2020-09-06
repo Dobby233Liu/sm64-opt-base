@@ -25,7 +25,7 @@
 #define TEXT_PAUSE _("PAUSE") // Pause text, Castle Courses
 #define TEXT_HUD_CONGRATULATIONS _("CONGRATULATIONS") // Course Complete Text, Bowser Courses
 
-#ifdef VERSION_JP
+#if defined(VERSION_JP) || defined(VERSION_SH)
 
 /**
  * File Select Text
@@ -470,6 +470,6 @@
 #define TEXT_MENU_SA_DE _("   VERSTECKTES AQUARIUM")
 #define TEXT_MENU_NONE_DE _("")
 #define TEXT_MENU_STARS_DE _("   GEHEIME STERNE")
-#endif
+#endif // VERSION_EU
 
-#endif
+#endif // TEXT_STRINGS_H

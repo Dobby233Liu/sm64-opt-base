@@ -1,9 +1,9 @@
 #include <ultra64.h>
-#include <macros.h>
 
-#include "load.h"
-#include "memory.h"
 #include "data.h"
+#include "external.h"
+#include "heap.h"
+#include "load.h"
 #include "seqplayer.h"
 
 #define ALIGN16(val) (((val) + 0xF) & ~0xF)
@@ -19,8 +19,7 @@ struct SharedDma {
 };                            // size = 0x10
 
 // EU only
-void func_802ada64(void);
-s32  func_eu_802E2AA0(void);
+void port_eu_init(void);
 
 struct Note *gNotes;
 
@@ -425,27 +424,27 @@ void patch_sound(UNUSED struct AudioBankSound *sound, UNUSED u8 *memBase, UNUSED
 }
 
 #ifndef VERSION_EU
-#define PATCH_SOUND(_sound, mem, offset)                                                                  \
-{                                                                                                         \
-    struct AudioBankSound *sound = _sound;                                                                \
-    struct AudioBankSample *sample;                                                                       \
-    void *patched;                                                                                        \
-    if ((*sound).sample != (void *) 0)                                                                    \
-    {                                                                                                     \
-        patched = (void *)(((unsigned int)(*sound).sample) + ((unsigned int)((unsigned char *) mem)));    \
-        (*sound).sample = patched;                                                                        \
-        sample = (*sound).sample;                                                                         \
-        if ((*sample).loaded == 0)                                                                        \
-        {                                                                                                 \
-            patched = (void *)(((unsigned int)(*sample).sampleAddr) + ((unsigned int) offset));           \
-            (*sample).sampleAddr = patched;                                                               \
-            patched = (void *)(((unsigned int)(*sample).loop) + ((unsigned int)((unsigned char *) mem))); \
-            (*sample).loop = patched;                                                                     \
-            patched = (void *)(((unsigned int)(*sample).book) + ((unsigned int)((unsigned char *) mem))); \
-            (*sample).book = patched;                                                                     \
-            (*sample).loaded = 1;                                                                         \
-        }                                                                                                 \
-    }                                                                                                     \
+#define PATCH_SOUND(_sound, mem, offset)                                                  \
+{                                                                                         \
+    struct AudioBankSound *sound = _sound;                                                \
+    struct AudioBankSample *sample;                                                       \
+    void *patched;                                                                        \
+    if ((*sound).sample != (void *) 0)                                                    \
+    {                                                                                     \
+        patched = (void *)(((uintptr_t)(*sound).sample) + ((uintptr_t)((u8 *) mem)));     \
+        (*sound).sample = patched;                                                        \
+        sample = (*sound).sample;                                                         \
+        if ((*sample).loaded == 0)                                                        \
+        {                                                                                 \
+            patched = (void *)(((uintptr_t)(*sample).sampleAddr) + ((uintptr_t) offset)); \
+            (*sample).sampleAddr = patched;                                               \
+            patched = (void *)(((uintptr_t)(*sample).loop) + ((uintptr_t)((u8 *) mem)));  \
+            (*sample).loop = patched;                                                     \
+            patched = (void *)(((uintptr_t)(*sample).book) + ((uintptr_t)((u8 *) mem)));  \
+            (*sample).book = patched;                                                     \
+            (*sample).loaded = 1;                                                         \
+        }                                                                                 \
+    }                                                                                     \
 }
 #endif
 
@@ -469,7 +468,7 @@ void patch_audio_bank(struct AudioBank *mem, u8 *offset, u32 numInstruments, u32
     drums = mem->drums;
 #ifndef VERSION_EU
     if (drums != NULL && numDrums > 0) {
-        mem->drums = (void *)((unsigned int) drums + (unsigned int) mem);
+        mem->drums = (void *)((uintptr_t) drums + (uintptr_t) mem);
         if (numDrums > 0) //! unneeded when -sopt is enabled
         for (i = 0; i < numDrums; i++) {
 #else
@@ -869,6 +868,7 @@ void load_sequence_internal(u32 player, u32 seqId, s32 loadAsync) {
     seqPlayer->scriptState.pc = sequenceData;
 }
 
+// (void) must be omitted from parameters
 void audio_init() {
 #ifdef VERSION_EU
     UNUSED s8 pad[16];
@@ -885,7 +885,7 @@ void audio_init() {
     s32 lim2, lim3;
 #endif
     u32 size;
-    u64 *ptr64;
+    UNUSED u64 *ptr64;
     void *data;
     UNUSED s32 pad2;
 
@@ -903,6 +903,8 @@ void audio_init() {
         ((u64 *) gAudioHeap)[i] = 0;
     }
 
+#ifdef TARGET_N64
+    // It seems boot.s doesn't clear the .bss area for audio, so do it here.
     i = 0;
     lim3 = ((uintptr_t) &gAudioGlobalsEndMarker - (uintptr_t) &gAudioGlobalsStartMarker) / 8;
     ptr64 = &gAudioGlobalsStartMarker - 1;
@@ -910,20 +912,25 @@ void audio_init() {
         i++;
         ptr64[i] = 0;
     }
+#endif
+
 #else
     for (i = 0; i < gAudioHeapSize / 8; i++) {
         ((u64 *) gAudioHeap)[i] = 0;
     }
 
+#ifdef TARGET_N64
+    // It seems boot.s doesn't clear the .bss area for audio, so do it here.
     lim3 = ((uintptr_t) &gAudioGlobalsEndMarker - (uintptr_t) &gAudioGlobalsStartMarker) / 8;
     ptr64 = &gAudioGlobalsStartMarker;
     for (k = lim3; k >= 0; k--) {
         *ptr64++ = 0;
     }
+#endif
 
     D_EU_802298D0 = 20.03042f;
     gRefreshRate = 50;
-    func_802ada64();
+    port_eu_init();
     if (k) {
     }
 #endif
@@ -958,7 +965,7 @@ void audio_init() {
 #ifdef VERSION_EU
     gAudioResetPresetIdToLoad = 0;
     gAudioResetStatus = 1;
-    func_eu_802E2AA0();
+    audio_shut_down_and_reset_step();
 #else
     audio_reset_session(&gAudioSessionPresets[0]);
 #endif

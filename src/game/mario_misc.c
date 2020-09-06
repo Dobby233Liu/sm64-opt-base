@@ -1,29 +1,28 @@
-#include <ultra64.h>
+#include <PR/ultratypes.h>
 
 #include "sm64.h"
 #include "area.h"
 #include "audio/external.h"
-#include "camera.h"
-#include "mario_misc.h"
 #include "behavior_actions.h"
 #include "behavior_data.h"
+#include "camera.h"
+#include "dialog_ids.h"
 #include "engine/behavior_script.h"
-#include "game.h"
 #include "engine/graph_node.h"
-#include "envfx_snow.h"
-#include "level_update.h"
 #include "engine/math_util.h"
+#include "envfx_snow.h"
+#include "game_init.h"
+#include "goddard/renderer.h"
+#include "interaction.h"
+#include "level_update.h"
+#include "mario_misc.h"
 #include "memory.h"
 #include "object_helpers.h"
-#include "object_helpers2.h"
-#include "goddard/renderer.h"
+#include "object_list_processor.h"
 #include "rendering_graph_node.h"
 #include "save_file.h"
-#include "sound_init.h"
 #include "skybox.h"
-#include "interaction.h"
-#include "object_list_processor.h"
-#include "dialog_ids.h"
+#include "sound_init.h"
 
 #define TOAD_STAR_1_REQUIREMENT 12
 #define TOAD_STAR_2_REQUIREMENT 25
@@ -63,8 +62,8 @@ static s8 gMarioBlinkAnimation[7] = { 1, 2, 1, 0, 1, 2, 1 };
  * There are 3 scale animations in groups of 6 frames.
  * The first animation starts at frame index 3 and goes down, the others start at frame index 5.
  * The values get divided by 10 before assigning, so e.g. 12 gives a scale factor 1.2.
- * All combined, this means e.g. the first animation scales Mario's fist by {2.4, 1.6, 1.2, 1.0} on 
- * succesive frames.
+ * All combined, this means e.g. the first animation scales Mario's fist by {2.4, 1.6, 1.2, 1.0} on
+ * successive frames.
  */
 static s8 gMarioAttackScaleAnimation[3 * 6] = {
     10, 12, 16, 24, 10, 10, 10, 14, 20, 30, 10, 10, 10, 16, 20, 26, 26, 20,
@@ -74,9 +73,9 @@ struct MarioBodyState gBodyStates[2]; // 2nd is never accessed in practice, most
 struct GraphNodeObject gMirrorMario;  // copy of Mario's geo node for drawing mirror Mario
 
 // This whole file is weirdly organized. It has to be the same file due
-// to rodata boundries and function aligns, which means the programmer
-// treated this like a "misc" file for vaguely mario related things
-// (message NPC related things, the mario head geo, and mario geo
+// to rodata boundaries and function aligns, which means the programmer
+// treated this like a "misc" file for vaguely Mario related things
+// (message NPC related things, the Mario head geo, and Mario geo
 // functions)
 
 /**
@@ -100,7 +99,7 @@ Gfx *geo_draw_mario_head_goddard(s32 callContext, struct GraphNode *node, Mat4 *
     return gfx;
 }
 
-static void bhvToadMessage_faded(void) {
+static void toad_message_faded(void) {
     if (gCurrentObject->oDistanceToMario > 700.0f) {
         gCurrentObject->oToadMessageRecentlyTalked = 0;
     }
@@ -109,7 +108,7 @@ static void bhvToadMessage_faded(void) {
     }
 }
 
-static void bhvToadMessage_opaque(void) {
+static void toad_message_opaque(void) {
     if (gCurrentObject->oDistanceToMario > 700.0f) {
         gCurrentObject->oToadMessageState = TOAD_MESSAGE_FADING;
     } else {
@@ -124,8 +123,8 @@ static void bhvToadMessage_opaque(void) {
     }
 }
 
-static void bhvToadMessage_talking(void) {
-    if (obj_update_dialog_with_cutscene(3, 1, CUTSCENE_DIALOG, gCurrentObject->oToadMessageDialogId)
+static void toad_message_talking(void) {
+    if (cur_obj_update_dialog_with_cutscene(3, 1, CUTSCENE_DIALOG, gCurrentObject->oToadMessageDialogId)
         != 0) {
         gCurrentObject->oToadMessageRecentlyTalked = 1;
         gCurrentObject->oToadMessageState = TOAD_MESSAGE_FADING;
@@ -146,42 +145,42 @@ static void bhvToadMessage_talking(void) {
     }
 }
 
-static void bhvToadMessage_opacifying(void) {
+static void toad_message_opacifying(void) {
     if ((gCurrentObject->oOpacity += 6) == 255) {
         gCurrentObject->oToadMessageState = TOAD_MESSAGE_OPAQUE;
     }
 }
 
-static void bhvToadMessage_fading(void) {
+static void toad_message_fading(void) {
     if ((gCurrentObject->oOpacity -= 6) == 81) {
         gCurrentObject->oToadMessageState = TOAD_MESSAGE_FADED;
     }
 }
 
-void bhvToadMessage_loop(void) {
+void bhv_toad_message_loop(void) {
     if (gCurrentObject->header.gfx.node.flags & GRAPH_RENDER_ACTIVE) {
         gCurrentObject->oInteractionSubtype = 0;
         switch (gCurrentObject->oToadMessageState) {
             case TOAD_MESSAGE_FADED:
-                bhvToadMessage_faded();
+                toad_message_faded();
                 break;
             case TOAD_MESSAGE_OPAQUE:
-                bhvToadMessage_opaque();
+                toad_message_opaque();
                 break;
             case TOAD_MESSAGE_OPACIFYING:
-                bhvToadMessage_opacifying();
+                toad_message_opacifying();
                 break;
             case TOAD_MESSAGE_FADING:
-                bhvToadMessage_fading();
+                toad_message_fading();
                 break;
             case TOAD_MESSAGE_TALKING:
-                bhvToadMessage_talking();
+                toad_message_talking();
                 break;
         }
     }
 }
 
-void bhvToadMessage_init(void) {
+void bhv_toad_message_init(void) {
     s32 saveFlags = save_file_get_flags();
     s32 starCount = save_file_get_total_star_count(gCurrSaveFileNum - 1, 0, 24);
     s32 dialogId = (gCurrentObject->oBehParams >> 24) & 0xFF;
@@ -213,11 +212,11 @@ void bhvToadMessage_init(void) {
         gCurrentObject->oToadMessageState = TOAD_MESSAGE_FADED;
         gCurrentObject->oOpacity = 81;
     } else {
-        mark_object_for_deletion(gCurrentObject);
+        obj_mark_for_deletion(gCurrentObject);
     }
 }
 
-static void bhvUnlockDoorStar_spawn_particle(s16 angleOffset) {
+static void star_door_unlock_spawn_particles(s16 angleOffset) {
     struct Object *sparkleParticle = spawn_object(gCurrentObject, 0, bhvSparkleSpawn);
 
     sparkleParticle->oPosX +=
@@ -228,7 +227,7 @@ static void bhvUnlockDoorStar_spawn_particle(s16 angleOffset) {
     sparkleParticle->oPosY -= gCurrentObject->oUnlockDoorStarTimer * 10.0f;
 }
 
-void bhvUnlockDoorStar_init(void) {
+void bhv_unlock_door_star_init(void) {
     gCurrentObject->oUnlockDoorStarState = UNLOCK_DOOR_STAR_RISING;
     gCurrentObject->oUnlockDoorStarTimer = 0;
     gCurrentObject->oUnlockDoorStarYawVel = 0x1000;
@@ -236,10 +235,10 @@ void bhvUnlockDoorStar_init(void) {
     gCurrentObject->oPosY += 160.0f;
     gCurrentObject->oPosZ += 30.0f * coss(gMarioState->faceAngle[1] - 0x4000);
     gCurrentObject->oMoveAngleYaw = 0x7800;
-    scale_object(gCurrentObject, 0.5f);
+    obj_scale(gCurrentObject, 0.5f);
 }
 
-void bhvUnlockDoorStar_loop(void) {
+void bhv_unlock_door_star_loop(void) {
     UNUSED u8 unused1[4];
     s16 prevYaw = gCurrentObject->oMoveAngleYaw;
     UNUSED u8 unused2[4];
@@ -253,7 +252,7 @@ void bhvUnlockDoorStar_loop(void) {
             gCurrentObject->oPosY += 3.4f; // Raise the star up in the air
             gCurrentObject->oMoveAngleYaw +=
                 gCurrentObject->oUnlockDoorStarYawVel; // Apply yaw velocity
-            scale_object(gCurrentObject, gCurrentObject->oUnlockDoorStarTimer / 50.0f
+            obj_scale(gCurrentObject, gCurrentObject->oUnlockDoorStarTimer / 50.0f
                                              + 0.5f); // Scale the star to be bigger
             if (++gCurrentObject->oUnlockDoorStarTimer == 30) {
                 gCurrentObject->oUnlockDoorStarTimer = 0;
@@ -266,7 +265,7 @@ void bhvUnlockDoorStar_loop(void) {
             if (++gCurrentObject->oUnlockDoorStarTimer == 30) {
                 play_sound(SOUND_MENU_STAR_SOUND,
                            gCurrentObject->header.gfx.cameraToObject); // Play final sound
-                obj_hide();                                            // Hide the object
+                cur_obj_hide();                                            // Hide the object
                 gCurrentObject->oUnlockDoorStarTimer = 0;
                 gCurrentObject
                     ->oUnlockDoorStarState++; // Sets state to UNLOCK_DOOR_STAR_SPAWNING_PARTICLES
@@ -274,8 +273,8 @@ void bhvUnlockDoorStar_loop(void) {
             break;
         case UNLOCK_DOOR_STAR_SPAWNING_PARTICLES:
             // Spawn two particles, opposite sides of the star.
-            bhvUnlockDoorStar_spawn_particle(0);
-            bhvUnlockDoorStar_spawn_particle(0x8000);
+            star_door_unlock_spawn_particles(0);
+            star_door_unlock_spawn_particles(0x8000);
             if (gCurrentObject->oUnlockDoorStarTimer++ == 20) {
                 gCurrentObject->oUnlockDoorStarTimer = 0;
                 gCurrentObject->oUnlockDoorStarState++; // Sets state to UNLOCK_DOOR_STAR_DONE
@@ -284,7 +283,7 @@ void bhvUnlockDoorStar_loop(void) {
         case UNLOCK_DOOR_STAR_DONE: // The object stays loaded for an additional 50 frames so that the
                                     // sound doesn't immediately stop.
             if (gCurrentObject->oUnlockDoorStarTimer++ == 50) {
-                mark_object_for_deletion(gCurrentObject);
+                obj_mark_for_deletion(gCurrentObject);
             }
             break;
     }
@@ -298,8 +297,7 @@ void bhvUnlockDoorStar_loop(void) {
 }
 
 /**
- * Generate a display list that sets the correct blend mode and color for
- * mirror Mario.
+ * Generate a display list that sets the correct blend mode and color for mirror Mario.
  */
 static Gfx *make_gfx_mario_alpha(struct GraphNodeGenerated *node, s16 alpha) {
     Gfx *gfx;
@@ -576,7 +574,7 @@ Gfx *geo_switch_mario_hand_grab_pos(s32 callContext, struct GraphNode *b, Mat4 *
         // This is why it won't update during a pause buffered hitstun or when the camera is very far
         // away.
         get_pos_from_transform_mtx(marioState->marioBodyState->heldObjLastPosition, *curTransform,
-                                   gCurGraphNodeCamera->matrixPtr);
+                                   *gCurGraphNodeCamera->matrixPtr);
     }
     return NULL;
 }

@@ -5,7 +5,7 @@
 #include "engine/surface_collision.h"
 #include "mario.h"
 #include "audio/external.h"
-#include "display.h"
+#include "game_init.h"
 #include "interaction.h"
 #include "mario_step.h"
 
@@ -21,9 +21,9 @@ struct Surface gWaterSurfacePseudoFloor = {
  * to be used for the beta trampoline. Its return value
  * is used by set_mario_y_vel_based_on_fspeed as a constant
  * addition to Mario's Y velocity. Given the closeness of
- * this function to nop_80254E50, it is probable that this
+ * this function to stub_mario_step_2, it is probable that this
  * was intended to check whether a trampoline had made itself
- * known through nop_80254E50 and whether Mario was on it,
+ * known through stub_mario_step_2 and whether Mario was on it,
  * and if so return a higher value than 0.
  */
 f32 get_additive_y_vel_for_jumps(void) {
@@ -33,13 +33,13 @@ f32 get_additive_y_vel_for_jumps(void) {
 /**
  * Does nothing, but takes in a MarioState. This is only ever
  * called by update_mario_inputs, which is called as part of Mario's
- * update routine. Due to its proximity to nop_80254E50, an
+ * update routine. Due to its proximity to stub_mario_step_2, an
  * incomplete trampoline function, and get_additive_y_vel_for_jumps,
  * a potentially trampoline-related function, it is plausible that
  * this could be used for checking if Mario was on the trampoline.
  * It could, for example, make him bounce.
  */
-void nop_80254E3C(UNUSED struct MarioState *x) {
+void stub_mario_step_1(UNUSED struct MarioState *x) {
 }
 
 /**
@@ -49,7 +49,7 @@ void nop_80254E3C(UNUSED struct MarioState *x) {
  * by the trampoline to make itself known to get_additive_y_vel_for_jumps,
  * or to set a variable with its intended additive Y vel.
  */
-void nop_80254E50(void) {
+void stub_mario_step_2(void) {
 }
 
 void transfer_bully_speed(struct BullyCollisionData *obj1, struct BullyCollisionData *obj2) {
@@ -358,7 +358,7 @@ u32 check_ledge_grab(struct MarioState *m, struct Surface *wall, Vec3f intendedP
     displacementX = nextPos[0] - intendedPos[0];
     displacementZ = nextPos[2] - intendedPos[2];
 
-    // Only ledge grab if the wall displaced mario in the opposite direction of
+    // Only ledge grab if the wall displaced Mario in the opposite direction of
     // his velocity.
     if (displacementX * m->vel[0] + displacementZ * m->vel[2] > 0.0f) {
         return 0;
@@ -437,7 +437,7 @@ s32 perform_air_quarter_step(struct MarioState *m, Vec3f intendedPos, u32 stepAr
         }
 
         //! When ceilHeight - floorHeight <= 160, the step result says that
-        // mario landed, but his movement is cancelled and his referenced floor
+        // Mario landed, but his movement is cancelled and his referenced floor
         // isn't updated (pedro spots)
         m->pos[1] = floorHeight;
         return AIR_STEP_LANDED;

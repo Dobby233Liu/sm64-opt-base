@@ -4,6 +4,8 @@
 #include "level_commands.h"
 #include "game/area.h"
 
+#include "make_const_nonconst.h"
+
 #include "segment_symbols.h"
 
 #include "actors/common0.h"
@@ -67,10 +69,10 @@ const LevelScript level_main_scripts_entry[] = {
     LOAD_MODEL_FROM_GEO(MODEL_SMOKE,                   smoke_geo),
     LOAD_MODEL_FROM_GEO(MODEL_SPARKLES,                sparkles_geo),
     LOAD_MODEL_FROM_GEO(MODEL_BUBBLE,                  bubble_geo),
-    LOAD_MODEL_FROM_GEO(MODEL_SPOT_ON_GROUND,          spot_on_ground_geo),
-    LOAD_MODEL_FROM_GEO(MODEL_WATER_WAVES_SURF,        water_waves_surface_geo),
+    LOAD_MODEL_FROM_GEO(MODEL_SMALL_WATER_SPLASH,      small_water_splash_geo),
+    LOAD_MODEL_FROM_GEO(MODEL_IDLE_WATER_WAVE,         idle_water_wave_geo),
     LOAD_MODEL_FROM_GEO(MODEL_WATER_SPLASH,            water_splash_geo),
-    LOAD_MODEL_FROM_GEO(MODEL_WATER_WAVES,             water_waves_geo),
+    LOAD_MODEL_FROM_GEO(MODEL_WAVE_TRAIL,              wave_trail_geo),
     LOAD_MODEL_FROM_GEO(MODEL_YELLOW_COIN,             yellow_coin_geo),
     LOAD_MODEL_FROM_GEO(MODEL_STAR,                    star_geo),
     LOAD_MODEL_FROM_GEO(MODEL_TRANSPARENT_STAR,        transparent_star_geo),

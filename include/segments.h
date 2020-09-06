@@ -1,5 +1,5 @@
-#ifndef _SEGMENTS_H
-#define _SEGMENTS_H
+#ifndef SEGMENTS_H
+#define SEGMENTS_H
 
 /*
  * Memory addresses for segments. Ideally, this header file would not be
@@ -22,6 +22,8 @@
 
 #ifdef VERSION_EU
 #define SEG_MAIN         0x80241800 // TODO: Investigate why it's different?
+#elif defined(VERSION_SH)
+#define SEG_MAIN         0x80249000
 #else
 #define SEG_MAIN         0x80246000
 #endif
@@ -51,4 +53,4 @@
 #define SEG_GODDARD      SEG_POOL_START + 0x113000
 #endif
 
-#endif // _SEGMENTS_H
+#endif // SEGMENTS_H
