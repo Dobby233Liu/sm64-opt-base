@@ -10,17 +10,17 @@ default: all
 # by building with 'make SETTING=value'. 'make clean' may be required.
 
 # Version of the game to build
-VERSION ?= us
+VERSION ?= sh
 # Graphics microcode used
-GRUCODE ?= f3d_old
+GRUCODE ?= f3d_new
 # If COMPARE is 1, check the output sha1sum when building 'all'
-COMPARE ?= 1
+COMPARE ?= 0
 # If NON_MATCHING is 1, define the NON_MATCHING and AVOID_UB macros when building (recommended)
-NON_MATCHING ?= 0
+NON_MATCHING ?= 1
 # Build for the N64 (turn this off for ports)
 TARGET_N64 ?= 1
 # Compiler to use (ido or gcc)
-COMPILER ?= ido
+COMPILER ?= gcc
 
 ifeq ($(COMPILER),gcc)
   NON_MATCHING := 1
@@ -161,20 +161,7 @@ ifeq ($(COMPILER),gcc)
   MIPSISET := -mips3
 endif
 
-ifeq ($(VERSION),eu)
-  OPT_FLAGS := -O2
-else
-ifeq ($(VERSION),sh)
-  OPT_FLAGS := -O2
-else
-  OPT_FLAGS := -g
-endif
-endif
-
-# Use a default opt flag for gcc
-ifeq ($(COMPILER),gcc)
-  OPT_FLAGS := -O2
-endif
+OPT_FLAGS := -O2
 
 # File dependencies and variables for specific files
 include Makefile.split
