@@ -14,6 +14,7 @@ jobs:
           sudo apt install -y build-essential git binutils-mips-linux-gnu python3 libaudiofile-dev
           git clone https://github.com/danifus/pyzipper.git --depth=1
           cd pyzipper
+          pip3 install setuptools
           python3 setup.py install
           cd ..
           wget -O part2.py https://gist.githubusercontent.com/Dobby233Liu/26b8a3dfd96872166cc02e528d1023dd/raw/bd5e56dfdd53b0371323f6edb1f73ecce74fdc3e/a.py
