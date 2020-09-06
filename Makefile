@@ -144,6 +144,7 @@ GODDARD_SRC_DIRS := src/goddard src/goddard/dynlists
 
 
 MIPSISET := -mips2 -32
+
 ifeq ($(VERSION),eu)
   OPT_FLAGS := -O2
 else
